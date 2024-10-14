@@ -190,12 +190,16 @@ extension ShadowEncoder.SingleValueContainer {
   /// - parameter value: The value to encode.
   mutating func encode(_ value: Decimal) throws {
     switch self._encoder.sink._withUnsafeGuaranteedRef({ $0.configuration.decimalStrategy }) {
-    case .locale(let locale):
-      var number = value
-      let string = NSDecimalString(&number, locale)
-      try self.encode(string)
-    case .custom(let closure):
-      try closure(value, self._encoder)
+        case .locale(let locale):
+            guard let locale else {
+                let error = EncodingError.invalidValue(value, EncodingError.Context(codingPath: self._encoder.codingPath, debugDescription: "Locale is nil"))
+                throw error
+            }
+            let format = Decimal.FormatStyle(locale: locale)
+            let string = value.formatted(format)
+            try self.encode(string)
+        case .custom(let closure):
+            try closure(value, self._encoder)
     }
   }
 
